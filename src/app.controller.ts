@@ -1,61 +1,51 @@
-import { Body, Controller, Get, Param, Post, Query, BadRequestException, Patch, Delete, HttpCode, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, BadRequestException, Patch, Delete, HttpCode, HttpStatus, ParseIntPipe } from '@nestjs/common';
 import { AppService } from './app.service';
-import { UsuarioDto } from './dto/usuario.dto';
 import { ApiAllResponses } from './decorators/swaggers-decorators';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { CreateUserDto } from './dto/usuario2.dto';
-import { UpdateUserDto } from './dto/usuario2.dto';
+import { CreateUserDto } from './dto/usuario.dto';
+import { UpdateUserDto } from './dto/usuario.dto';
 
 @Controller('users')
 export class UserController {
-  constructor(private readonly appService: AppService) {}
-
-  @Post("api/teste")
-  @ApiAllResponses({
-    summary: 'Retorna mensagem de saudação para os usuários informados',
-    bodyType: UsuarioDto,
-    bodyDescription: 'Usuários a serem saudados',
-    okType: String,
-  })
-  getHello(@Body() body: UsuarioDto): string {
-    return this.appService.getHello(body);
-  }
-
-  @Get('api/usuario/:nome')
-  @ApiAllResponses({summary: 'Retorna mensagem de saudação para o usuário informado',okType: String})
-  getHelloParam(
-    @Param('nome') nome: string,
-    @Query('senha') senha: string,
-  ): string {
-    return this.appService.getHelloParam(nome, senha);
-  }  
+  constructor(private readonly appService: AppService) { }
 
   @Post()
   @ApiOperation({ summary: 'Cria um novo usuário' })
   @ApiResponse({ status: 201, description: 'O usuário foi criado com sucesso.' })
   @ApiResponse({ status: 400, description: 'Dados inválidos fornecidos.' })
-  createUser(@Body() createUserDto: CreateUserDto) {
-    console.log('Dados recebidos para criar usuário:', createUserDto);
-    return {message: 'Usuário criado com sucesso!',data: createUserDto};  
- }
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.appService.create(createUserDto);
+  }
 
-  @Patch('users/:id')
+  @Get()
+  @ApiOperation({ summary: 'Lista todos os usuários' })
+  @ApiResponse({ status: 200, description: 'Lista de usuários retornada com sucesso.' })
+  findAll() {
+    return this.appService.findAll();
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Encontra um usuário por ID' })
+  @ApiResponse({ status: 200, description: 'Usuário encontrado.' })
+  @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
+  findOne(@Param('id', ParseIntPipe) id: number) {
+    return this.appService.findOne(id);
+  }
+
+  @Patch(':id')
   @ApiOperation({ summary: 'Atualiza um usuário existente' })
   @ApiResponse({ status: 200, description: 'O usuário foi atualizado com sucesso.' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
-  updateUser(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    console.log(`Atualizando usuário com ID: ${id}`);
-    console.log('Dados para atualização:', updateUserDto);
-    return {message: `Usuário com ID ${id} atualizado.`, data: updateUserDto};
+  update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto) {
+    return this.appService.update(id, updateUserDto);
   }
-  
+
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT) 
+  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Deleta um usuário' })
   @ApiResponse({ status: 204, description: 'O usuário foi deletado com sucesso.' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
-  deleteUser(@Param('id') id: string) {
-    console.log(`Deletando usuário com ID: ${id}`);
-    return {message: `Usuário com ID ${id} deletado.`};
+  remove(@Param('id', ParseIntPipe) id: number) {
+    this.appService.remove(id);
   }
 }
