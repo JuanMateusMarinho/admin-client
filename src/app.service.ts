@@ -41,12 +41,13 @@ export class AppService {
     return user;
   }
 
-  remove(id: number): void {
+  remove(id: number): { message: string, user: User } {
     const userIndex = this.users.findIndex(user => user.id === id);
     if (userIndex === -1) {
       throw new NotFoundException(`Usuário com ID ${id} não encontrado.`);
     }
-    this.users.splice(userIndex, 1);
+    const [deletedUser] = this.users.splice(userIndex, 1);
+    return { message: `Usuário ${deletedUser.name} deletado com sucesso.`, user: deletedUser };
   }
 
   findOne(id: number): User {

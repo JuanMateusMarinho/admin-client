@@ -41,11 +41,10 @@ export class UserController {
   }
 
   @Delete(':id')
-  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Deleta um usuário' })
-  @ApiResponse({ status: 204, description: 'O usuário foi deletado com sucesso.' })
+  @ApiResponse({ status: 200, description: 'O usuário foi deletado com sucesso e seus dados são retornados.' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
   remove(@Param('id', ParseIntPipe) id: number) {
-    this.appService.remove(id);
+    return this.appService.remove(id);
   }
 }
