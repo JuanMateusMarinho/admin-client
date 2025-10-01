@@ -1,6 +1,9 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto, UpdateUserDto } from './dto/usuario.dto';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { SUPABASE_CLIENT } from './supabase.provider';
 
+// A interface User permanece a mesma, representando a estrutura dos seus dados.
 export interface User {
   id: number;
   name: string;
@@ -9,56 +12,137 @@ export interface User {
 
 @Injectable()
 export class AppService {
-  private users: User[] = [];
-  private nextId = 1;
+  constructor(
+    @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient
+  ) {
+  }
 
-  create(createUserDto: CreateUserDto): User {
-    const userWithSameEmail = this.users.find(user => user.email === createUserDto.email);
-    if (userWithSameEmail) {
+  private generateRandomId(): number {
+    return Math.floor(10000 + Math.random() * 90000);
+  }
+
+  private isSequential(id: number): boolean {
+    const s = id.toString();
+    let isAscending = true;
+    let isDescending = true;
+
+    for (let i = 0; i < s.length - 1; i++) {
+      if (+s[i + 1] !== +s[i] + 1) {
+        isAscending = false;
+      }
+      if (+s[i + 1] !== +s[i] - 1) {
+        isDescending = false;
+      }
+    }
+    return isAscending || isDescending;
+  }
+
+  private async generateAndCheckId(): Promise<number> {
+    // Loop infinito que só será interrompido por um "return"
+    while (true) {
+      const id = this.generateRandomId();
+      if (!this.isSequential(id)) {
+        const { data: existingId } = await this.supabase.from('users').select('id').eq('id', id).single();
+        if (!existingId) {
+          return id;
+        }
+      }
+    }
+  }
+
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    // Verifica se já existe um usuário com o mesmo e-mail
+    const { data: existingUser, error: existingUserError } = await this.supabase
+      .from('users')
+      .select('email')
+      .eq('email', createUserDto.email)
+      .single();
+
+    if (existingUser) {
       throw new BadRequestException(`Já existe um usuário com o e-mail ${createUserDto.email}.`);
     }
 
-    const newUser: User = {
-      id: this.nextId++,
-      ...createUserDto,
-    };
-    this.users.push(newUser);
-    return newUser;
+    const newId = await this.generateAndCheckId();
+
+    // Insere o novo usuário no banco de dados
+    const { data, error } = await this.supabase
+      .from('users')
+      .insert([{ ...createUserDto, id: newId }])
+      .select()
+      .single();
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+    return data;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto): User {
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+    // Primeiro, garante que o usuário existe
+    await this.findOne(id);
+
+    // Se o e-mail estiver sendo atualizado, verifica se o novo e-mail já está em uso por outro usuário
     if (updateUserDto.email) {
-      const userWithSameEmail = this.users.find(
-        user => user.email === updateUserDto.email && user.id !== id
-      );
-      if (userWithSameEmail) {
+      const { data: existingUser, error: existingUserError } = await this.supabase
+        .from('users')
+        .select('id')
+        .eq('email', updateUserDto.email)
+        .neq('id', id) // Exclui o próprio usuário da verificação
+        .single();
+
+      if (existingUser) {
         throw new BadRequestException(`O e-mail ${updateUserDto.email} já está em uso por outro usuário.`);
       }
     }
 
-    const user = this.findOne(id);
-    Object.assign(user, { name: updateUserDto.name ?? user.name, email: updateUserDto.email ?? user.email });
-    return user;
+    // Atualiza o usuário
+    const { data, error } = await this.supabase
+      .from('users')
+      .update(updateUserDto)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+    return data;
   }
 
-  remove(id: number): { message: string, user: User } {
-    const userIndex = this.users.findIndex(user => user.id === id);
-    if (userIndex === -1) {
-      throw new NotFoundException(`Usuário com ID ${id} não encontrado.`);
+  async remove(id: number): Promise<{ message: string, user: User }> {
+    // Busca o usuário para poder retorná-lo na mensagem de sucesso
+    const deletedUser = await this.findOne(id);
+
+    const { error } = await this.supabase
+      .from('users')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw new BadRequestException(error.message);
     }
-    const [deletedUser] = this.users.splice(userIndex, 1);
+
     return { message: `Usuário ${deletedUser.name} deletado com sucesso.`, user: deletedUser };
   }
 
-  findOne(id: number): User {
-    const user = this.users.find(u => u.id === id);
-    if (!user) {
+  async findOne(id: number): Promise<User> {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error || !data) {
       throw new NotFoundException(`Usuário com ID ${id} não encontrado.`);
     }
-    return user;
+    return data;
   }
 
-  findAll(): User[] {
-    return this.users;
+  async findAll(): Promise<User[]> {
+    const { data, error } = await this.supabase.from('users').select('*');
+    if (error) {
+      throw new BadRequestException(error.message);
+    }
+    return data || [];
   }
 }

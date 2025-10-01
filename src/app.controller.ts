@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, BadRequestException, Patch, Delete, HttpCode, HttpStatus, ParseIntPipe } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, BadRequestException, Patch, Delete, HttpCode, HttpStatus, ParseIntPipe, Put } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiAllResponses } from './decorators/swaggers-decorators';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -32,7 +32,7 @@ export class UserController {
     return this.appService.findOne(id);
   }
 
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Atualiza um usuário existente' })
   @ApiResponse({ status: 200, description: 'O usuário foi atualizado com sucesso.' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
