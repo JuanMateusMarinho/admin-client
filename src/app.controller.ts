@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, BadRequestException, Patch, Delete, HttpCode, HttpStatus, ParseIntPipe, Put } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query, BadRequestException, Patch, Delete, HttpCode, HttpStatus, Put } from '@nestjs/common';
 import { AppService } from './app.service';
 import { ApiAllResponses } from './decorators/swaggers-decorators';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
@@ -28,7 +28,7 @@ export class UserController {
   @ApiOperation({ summary: 'Encontra um usuário por ID' })
   @ApiResponse({ status: 200, description: 'Usuário encontrado.' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
-  findOne(@Param('id', ParseIntPipe) id: number) {
+  findOne(@Param('id') id: string) {
     return this.appService.findOne(id);
   }
 
@@ -36,7 +36,7 @@ export class UserController {
   @ApiOperation({ summary: 'Atualiza um usuário existente' })
   @ApiResponse({ status: 200, description: 'O usuário foi atualizado com sucesso.' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
-  update(@Param('id', ParseIntPipe) id: number, @Body() updateUserDto: UpdateUserDto) {
+  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
     return this.appService.update(id, updateUserDto);
   }
 
@@ -44,7 +44,7 @@ export class UserController {
   @ApiOperation({ summary: 'Deleta um usuário' })
   @ApiResponse({ status: 200, description: 'O usuário foi deletado com sucesso e seus dados são retornados.' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
-  remove(@Param('id', ParseIntPipe) id: number) {
+  remove(@Param('id') id: string) {
     return this.appService.remove(id);
   }
 }

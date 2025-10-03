@@ -1,11 +1,12 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto, UpdateUserDto } from './dto/usuario.dto';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { createId } from '@paralleldrive/cuid2';
 import { SUPABASE_CLIENT } from './supabase.provider';
 
 // A interface User permanece a mesma, representando a estrutura dos seus dados.
 export interface User {
-  id: number;
+  id: string;
   name: string;
   email: string;
 }
@@ -15,39 +16,6 @@ export class AppService {
   constructor(
     @Inject(SUPABASE_CLIENT) private readonly supabase: SupabaseClient
   ) {
-  }
-
-  private generateRandomId(): number {
-    return Math.floor(10000 + Math.random() * 90000);
-  }
-
-  private isSequential(id: number): boolean {
-    const s = id.toString();
-    let isAscending = true;
-    let isDescending = true;
-
-    for (let i = 0; i < s.length - 1; i++) {
-      if (+s[i + 1] !== +s[i] + 1) {
-        isAscending = false;
-      }
-      if (+s[i + 1] !== +s[i] - 1) {
-        isDescending = false;
-      }
-    }
-    return isAscending || isDescending;
-  }
-
-  private async generateAndCheckId(): Promise<number> {
-    // Loop infinito que só será interrompido por um "return"
-    while (true) {
-      const id = this.generateRandomId();
-      if (!this.isSequential(id)) {
-        const { data: existingId } = await this.supabase.from('users').select('id').eq('id', id).single();
-        if (!existingId) {
-          return id;
-        }
-      }
-    }
   }
 
   async create(createUserDto: CreateUserDto): Promise<User> {
@@ -62,12 +30,12 @@ export class AppService {
       throw new BadRequestException(`Já existe um usuário com o e-mail ${createUserDto.email}.`);
     }
 
-    const newId = await this.generateAndCheckId();
+    const newId = createId(); // Gera um ID único e seguro
 
     // Insere o novo usuário no banco de dados
     const { data, error } = await this.supabase
       .from('users')
-      .insert([{ ...createUserDto, id: newId }])
+      .insert([{ ...createUserDto, id: newId }]) // CUID2 gera string, talvez precise ajustar o tipo no BD
       .select()
       .single();
 
@@ -77,7 +45,8 @@ export class AppService {
     return data;
   }
 
-  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+  // O ID agora pode ser uma string, dependendo da sua implementação com CUID2
+  async update(id: number | string, updateUserDto: UpdateUserDto): Promise<User> {
     // Primeiro, garante que o usuário existe
     await this.findOne(id);
 
@@ -109,7 +78,7 @@ export class AppService {
     return data;
   }
 
-  async remove(id: number): Promise<{ message: string, user: User }> {
+  async remove(id: number | string): Promise<{ message: string, user: User }> {
     // Busca o usuário para poder retorná-lo na mensagem de sucesso
     const deletedUser = await this.findOne(id);
 
@@ -125,7 +94,7 @@ export class AppService {
     return { message: `Usuário ${deletedUser.name} deletado com sucesso.`, user: deletedUser };
   }
 
-  async findOne(id: number): Promise<User> {
+  async findOne(id: number | string): Promise<User> {
     const { data, error } = await this.supabase
       .from('users')
       .select('*')
