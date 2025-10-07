@@ -5,11 +5,11 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CreateUserDto } from './dto/usuario.dto';
 import { UpdateUserDto } from './dto/usuario.dto';
 
-@Controller('users')
+@Controller('sorteio')
 export class UserController {
   constructor(private readonly appService: AppService) { }
 
-  @Post()
+  @Post('create-users')
   @ApiOperation({ summary: 'Cria um novo usuário' })
   @ApiResponse({ status: 201, description: 'O usuário foi criado com sucesso.' })
   @ApiResponse({ status: 400, description: 'Dados inválidos fornecidos.' })
@@ -17,14 +17,14 @@ export class UserController {
     return this.appService.create(createUserDto);
   }
 
-  @Get()
+  @Get('list-user')
   @ApiOperation({ summary: 'Lista todos os usuários' })
   @ApiResponse({ status: 200, description: 'Lista de usuários retornada com sucesso.' })
   findAll() {
     return this.appService.findAll();
   }
 
-  @Get(':id')
+  @Get('findbyid/:id')
   @ApiOperation({ summary: 'Encontra um usuário por ID' })
   @ApiResponse({ status: 200, description: 'Usuário encontrado.' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
@@ -32,7 +32,7 @@ export class UserController {
     return this.appService.findOne(id);
   }
 
-  @Put(':id')
+  @Put('update-users/:id')
   @ApiOperation({ summary: 'Atualiza um usuário existente' })
   @ApiResponse({ status: 200, description: 'O usuário foi atualizado com sucesso.' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
@@ -40,7 +40,7 @@ export class UserController {
     return this.appService.update(id, updateUserDto);
   }
 
-  @Delete(':id')
+  @Delete('delete-user/:id')
   @ApiOperation({ summary: 'Deleta um usuário' })
   @ApiResponse({ status: 200, description: 'O usuário foi deletado com sucesso e seus dados são retornados.' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
