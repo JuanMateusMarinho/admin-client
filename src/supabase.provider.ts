@@ -7,7 +7,7 @@ export const SUPABASE_CLIENT = 'SUPABASE_CLIENT';
 
 export const SupabaseProvider: Provider = {
   provide: SUPABASE_CLIENT,
-  useFactory: (configService: ConfigService): SupabaseClient => {
+  useFactory: (configService: ConfigService): SupabaseClient => { 
     const supabaseUrl = configService.get<string>('SUPABASE_URL');
     const supabaseKey = configService.get<string>('SUPABASE_KEY');
 
