@@ -78,6 +78,39 @@ export class AppService {
     return data;
   }
 
+  async updateByEmail(email: string, updateUserDto: UpdateUserDto): Promise<User> {
+    // Primeiro, garante que o usuário existe buscando pelo e-mail
+    const userToUpdate = await this.findOneByEmail(email);
+
+    // Se um novo e-mail estiver sendo fornecido para atualização
+    if (updateUserDto.email && updateUserDto.email !== email) {
+      // Verifica se o novo e-mail já está em uso por outro usuário
+      const { data: existingUser } = await this.supabase
+        .from('users')
+        .select('id')
+        .eq('email', updateUserDto.email)
+        .single();
+
+      if (existingUser) {
+        throw new BadRequestException(`O e-mail ${updateUserDto.email} já está em uso por outro usuário.`);
+      }
+    }
+
+    // Atualiza o usuário usando o e-mail como critério de busca
+    const { data, error } = await this.supabase
+      .from('users')
+      .update(updateUserDto)
+      .eq('email', email)
+      .select()
+      .single();
+
+    if (error) {
+      // Lança uma exceção se houver um erro na atualização
+      throw new BadRequestException(error.message);
+    }
+    return data;
+  }
+
   async remove(id: number | string): Promise<{ message: string, user: User }> {
     // Busca o usuário para poder retorná-lo na mensagem de sucesso
     const deletedUser = await this.findOne(id);
@@ -107,6 +140,18 @@ export class AppService {
     return data;
   }
 
+  async findOneByEmail(email: string): Promise<User> {
+    const { data, error } = await this.supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+
+    if (error || !data) {
+      throw new NotFoundException(`Usuário com e-mail ${email} não encontrado.`);
+    }
+    return data;
+  }
   async findAll(): Promise<User[]> {
     const { data, error } = await this.supabase.from('users').select('*');
     if (error) {

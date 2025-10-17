@@ -32,12 +32,12 @@ export class UserController {
     return this.appService.findOne(id);
   }
 
-  @Put('update-users/:id')
+  @Put('update-users/:email')
   @ApiOperation({ summary: 'Atualiza um usuário existente' })
   @ApiResponse({ status: 200, description: 'O usuário foi atualizado com sucesso.' })
   @ApiResponse({ status: 404, description: 'Usuário não encontrado.' })
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.appService.update(id, updateUserDto);
+  update(@Param('email') email: string, @Body() updateUserDto: UpdateUserDto) {
+    return this.appService.updateByEmail(email, updateUserDto);
   }
 
   @Delete('delete-user/:id')
